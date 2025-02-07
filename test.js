@@ -207,30 +207,62 @@ async function sendImageToTelegram(post) {
     let postTypeOptions = ['self', 'media', 'link', 'poll', 'gallery'];
     let postType = -1; // default to no postType until one is found
     postType = getPostType(post, postTypeOptions);
-    const imageFormats = ['jpeg', 'jpg', 'gif', 'png', 'mp4', 'webm', 'gifv'];
 
     if (postType != 3 && post.url !== undefined) {
-        let downloadURL = post.url;
+       var url = post.url;
+        if (post.post_hint === 'image') {
+            try {
+                const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
+                    {
+                        chat_id: CHAT_ID,
+                        photo: url,
+                        caption: post.title
+                    }
+                );
+
+                console.log('Image sent successfully!', response.data);
+            } catch (error) {
+                console.error('Error sending image:', error.response ? error.response.data : error.message);
+            }
+        } else if (post.post_hint.includes('video')) {
+            try {
+                const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`,
+                    {
+                        chat_id: CHAT_ID,
+                        video: url,
+                        caption: post.title
+                    }
+                );
+
+                console.log('Video sent successfully!', response.data);
+            } catch (error) {
+                console.error('Error sending video:', error.response ? error.response.data : error.message);
+            }
+        }
+    } else if (postType == 4) {
+        var mediaList = new Array();
+
+        for (const { media_id, id } of post.gallery_data.items) {
+            const media = post.media_metadata[media_id];
+            var url = media['s']['u'].replaceAll('&amp;', '&');
+
+            mediaList.push({ type: 'photo', media: url });
+        }
 
         try {
-            const response = await axios.get(
-                `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
+            const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`,
                 {
-                    params: {
-                        chat_id: CHAT_ID,
-                        photo: downloadURL,
-                        caption: post.title
-                    },
+                    chat_id: CHAT_ID,
+                    media: mediaList,
+                    caption: post.title
                 }
             );
-
-            console.log('Image sent successfully!', response.data);
+            console.log('MediaGroup sent successfully!', response.data);
         } catch (error) {
-            console.error('Error sending image:', error.response ? error.response.data : error.message);
+            console.error('Error sending MediaGroup:', error.response ? error.response.data : error.message);
         }
-    }
+   }
 }
-
 
 function checkIfDone(lastPostId, override) {
     if (
