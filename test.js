@@ -15,6 +15,7 @@ const CHAT_ID = '-1002342607540';
 
 // Variables used for logging
 let userLogs = '';
+const lastIndexSuff = '_last_index.txt'
 const logFormat = 'txt';
 let date = new Date();
 let date_string = `${date.getFullYear()} ${date.getMonth() + 1
@@ -27,7 +28,7 @@ let currentSubredditIndex = 0; // Used to track which subreddit the user is down
 let responseSize = -1; // Used to track the size of the response from the API call, aka how many posts are in the response
 
 // User-defined variables, these can be preset with the help of testingMode
-let subredditList = ["Pikabu"]; // List of subreddits in this format: ['subreddit1', 'subreddit2', 'subreddit3']
+let subredditList = ["TikTokCringe"];//"Pikabu" // List of subreddits in this format: ['subreddit1', 'subreddit2', 'subreddit3']
 let numberOfPosts = 1; // How many posts to go through, more posts = more downloads, but takes longer
 let sorting = 'top'; // How to sort the posts (top, new, hot, rising, controversial)
 let time = 'all'; // What time period to sort by (hour, day, week, month, year, all)
@@ -51,14 +52,16 @@ let downloadedPosts = {
 startScript();
 
 function startScript() {
-    if (!fs.existsSync('last_index.txt')) {
-        fs.writeFileSync('last_index.txt', '', (err) => { if (err) throw err; });
+    var reddit = subredditList[0];
+
+    if (!fs.existsSync(reddit + lastIndexSuff)) {
+        fs.writeFileSync(reddit + lastIndexSuff, '', (err) => { if (err) throw err; });
     }
 
     //set last index
-    var lastIndex = fs.readFileSync('./last_index.txt', 'utf8');
+    var lastIndex = fs.readFileSync(reddit + lastIndexSuff, 'utf8');
 
-    downloadSubredditPosts(subredditList[0], lastIndex);
+    downloadSubredditPosts(reddit, lastIndex);
 }
 
 async function downloadSubredditPosts(subreddit, lastPostId) {
@@ -131,9 +134,9 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
 
             if (index != null) {
                 //clean file
-                fs.truncateSync('last_index.txt', 0, function () { console.log('done') });
+                fs.truncateSync(subreddit + lastIndexSuff, 0, function () { console.log('done') });
 
-                fs.writeFileSync("last_index.txt", index, (err) => {
+                fs.writeFileSync(subreddit + lastIndexSuff, index, (err) => {
                     if (err) console.log(err);
                     else {
                         console.log("Update last index successfully\n");
@@ -209,13 +212,13 @@ async function sendImageToTelegram(post) {
     postType = getPostType(post, postTypeOptions);
 
     if (postType != 3 && post.url !== undefined) {
-       var url = post.url;
+
         if (post.post_hint === 'image') {
             try {
                 const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
                     {
                         chat_id: CHAT_ID,
-                        photo: url,
+                        photo: post.url,
                         caption: post.title
                     }
                 );
@@ -225,18 +228,34 @@ async function sendImageToTelegram(post) {
                 console.error('Error sending image:', error.response ? error.response.data : error.message);
             }
         } else if (post.post_hint.includes('video')) {
-            try {
-                const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`,
-                    {
+
+            var url = '';
+            if (post.media && post.media.type === 'youtube.com') {
+                url = post.url;
+            }
+            else if (post.secure_media && post.secure_media.reddit_video) {
+                url = post.secure_media.reddit_video.fallback_url;
+            } else if (post.media && post.media.reddit_video) {
+                url = post.media.reddit_video.fallback_url;
+            }
+
+            if (url != '') {
+                try {
+
+                    var request = {
                         chat_id: CHAT_ID,
                         video: url,
                         caption: post.title
-                    }
-                );
+                    };
 
-                console.log('Video sent successfully!', response.data);
-            } catch (error) {
-                console.error('Error sending video:', error.response ? error.response.data : error.message);
+                    const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, request);
+
+                    console.log('Video sent successfully!', response.data);
+                } catch (error) {
+                    console.error('Error sending video:', error.response ? error.response.data : error.message, request.video);
+                }
+            } else {
+                console.error('Error sending video: url is null. See post: ', post);
             }
         }
     } else if (postType == 4) {
@@ -261,7 +280,7 @@ async function sendImageToTelegram(post) {
         } catch (error) {
             console.error('Error sending MediaGroup:', error.response ? error.response.data : error.message);
         }
-   }
+    }
 }
 
 function checkIfDone(lastPostId, override) {
