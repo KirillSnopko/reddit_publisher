@@ -1,6 +1,6 @@
 // NodeJS Dependencies
 const fs = require('fs');
-const prompts = require('prompts');
+//const prompts = require('prompts');
 const chalk = require('chalk');
 const axios = require('axios');
 
@@ -240,21 +240,53 @@ async function sendImageToTelegram(post) {
             }
 
             if (url != '') {
-                try {
 
-                    var request = {
-                        chat_id: CHAT_ID,
-                        video: url,
-                        caption: post.title
-                    };
+                downloadDirectory = subredditList[0];
 
-                    const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, request);
+                const videoFilePath = `${downloadDirectory}/${videoFileName}`;
+                const videoDownload = downloadMediaFile(url, videoFilePath, post.title);
 
-                    console.log('Video sent successfully!', response.data);
-                } catch (error) {
-                    console.error('Error sending video:', error.response ? error.response.data : error.message, request.video);
-                }
-            } else {
+                var audioUrl = videoUrl.substring(0, url.lastIndexOf('/') + 1) + 'audio';
+                var audioFileName = videoFileName.replace('.mp4', '-audio.mp4');
+                const audioFilePath = `${downloadDirectory}/${audioFileName}`;
+                const audioDownload = downloadMediaFile(audioUrl, audioFilePath, postName);
+
+                await Promise.all([videoDownload, audioDownload]);
+
+                var mergedFileName = videoFileName.replace('.mp4', '-merged.mp4');
+                const mergedFilePath = `${downloadDirectory}/${mergedFileName}`;
+                log(`merging audio and video into:  ${mergedFileName}`, false);
+
+                // Merge audio and video using ffmpeg
+                ffmpeg()
+                    .input(videoFilePath)
+                    .input(audioFilePath)
+                    .output(mergedFilePath)
+                    .on('end', () => {
+                        console.log('Download complete');
+                        // Remove temporary audio and video files
+                        fs.unlinkSync(audioFilePath);
+                        fs.unlinkSync(videoFilePath);
+                    })
+                    .run();
+
+                    try {
+
+                        var request = {
+                            chat_id: CHAT_ID,
+                            video: fs.createReadStream(mergedFilePath),
+                            caption: post.title
+                        };
+    
+                        const response = await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, request);
+    
+                        console.log('Video sent successfully!', response.data);
+                    } catch (error) {
+                        console.error('Error sending video:', error.response ? error.response.data : error.message, request.video);
+                    }finally{
+                        fs.unlinkSync(mergedFilePath);
+                    }
+           } else {
                 console.error('Error sending video: url is null. See post: ', post);
             }
         }
