@@ -28,7 +28,7 @@ let responseSize = -1; // Used to track the size of the response from the API ca
 
 // User-defined variables, these can be preset with the help of testingMode
 let timeBetweenRuns = 0; // in milliseconds, the time between runs. This is only used if repeatForever is true
-let subredditList = ["Pikabu"]; // List of subreddits in this format: ['subreddit1', 'subreddit2', 'subreddit3']
+let subredditList = ["TikTokCringe"]; // List of subreddits in this format: ['subreddit1', 'subreddit2', 'subreddit3']
 let numberOfPosts = 1; // How many posts to go through, more posts = more downloads, but takes longer
 let sorting = 'top'; // How to sort the posts (top, new, hot, rising, controversial)
 let time = 'all'; // What time period to sort by (hour, day, week, month, year, all)

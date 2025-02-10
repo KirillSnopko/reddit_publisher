@@ -242,21 +242,23 @@ async function sendImageToTelegram(post) {
             if (url != '') {
 
                 downloadDirectory = `downloads/${subredditList[0]}`;
-                videoFileName = getFileName(post);
-                
+                videoFileName = getFileName(post) + `.mp4`;
+
+                var mergedFileName = videoFileName.replace('.mp4', '-merged.mp4');
+                const mergedFilePath = `${downloadDirectory}/${mergedFileName}`;
+           
+                try{
                 const videoFilePath = `${downloadDirectory}/${videoFileName}`;
-                const videoDownload = downloadMediaFile(url, videoFilePath, post.title);
+                const videoDownload = await downloadMediaFile(url, videoFilePath, post.title);
 
                 var audioUrl = url.substring(0, url.lastIndexOf('/') + 1) + 'audio';
                 var audioFileName = videoFileName.replace('.mp4', '-audio.mp4');
                 const audioFilePath = `${downloadDirectory}/${audioFileName}`;
-                const audioDownload = downloadMediaFile(audioUrl, audioFilePath, postName);
+                const audioDownload = await downloadMediaFile(audioUrl, audioFilePath, post.title);
 
                 await Promise.all([videoDownload, audioDownload]);
 
-                var mergedFileName = videoFileName.replace('.mp4', '-merged.mp4');
-                const mergedFilePath = `${downloadDirectory}/${mergedFileName}`;
-                log(`merging audio and video into:  ${mergedFileName}`, false);
+                   log(`merging audio and video into:  ${mergedFileName}`, false);
 
                 // Merge audio and video using ffmpeg
                 ffmpeg()
@@ -270,6 +272,9 @@ async function sendImageToTelegram(post) {
                         fs.unlinkSync(videoFilePath);
                     })
                     .run();
+                }catch(error){
+                    console.error('Error:', error);
+                }
 
                     try {
 
