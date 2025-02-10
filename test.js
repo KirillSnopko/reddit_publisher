@@ -241,12 +241,13 @@ async function sendImageToTelegram(post) {
 
             if (url != '') {
 
-                downloadDirectory = subredditList[0];
-
+                downloadDirectory = `downloads/${subredditList[0]}`;
+                videoFileName = getFileName(post);
+                
                 const videoFilePath = `${downloadDirectory}/${videoFileName}`;
                 const videoDownload = downloadMediaFile(url, videoFilePath, post.title);
 
-                var audioUrl = videoUrl.substring(0, url.lastIndexOf('/') + 1) + 'audio';
+                var audioUrl = url.substring(0, url.lastIndexOf('/') + 1) + 'audio';
                 var audioFileName = videoFileName.replace('.mp4', '-audio.mp4');
                 const audioFilePath = `${downloadDirectory}/${audioFileName}`;
                 const audioDownload = downloadMediaFile(audioUrl, audioFilePath, postName);
