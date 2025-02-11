@@ -37,17 +37,12 @@ function startScript() {
 }
 
 async function downloadSubredditPosts(subreddit, lastPostId) {
-    let postsRemaining = Math.min(numberOfPostsRemaining(), 100);
-    if (postsRemaining <= 0) {
-        return downloadNextSubreddit();
-    }
-
     if (!lastPostId) lastPostId = '';
 
     makeDirectories();
     try {
         const response = await axios.get(
-            `https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${postsRemaining}&after=${lastPostId}`
+            `https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`
         );
         const data = response.data;
 
@@ -74,7 +69,6 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
         }
     } catch (error) {
         console.error(`Error fetching posts for ${subreddit}:`, error.message);
-        downloadNextSubreddit();
     }
 }
 
