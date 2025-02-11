@@ -48,7 +48,7 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
             `https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`,
             {
                 headers: {
-                    'User-Agent': 'MyRedditDownloaderScript/1.0', // Replace with a unique identifier
+                                        'User-Agent': 'MyRedditDownloaderScript/1.0', 
                 }
             },
         );
@@ -76,7 +76,7 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
             }
         }
     } catch (error) {
-        console.error(`Error fetching posts for ${subreddit}:`, error.message);
+        console.error(`Error fetching posts for ${subreddit}:`, error);
     }
 }
 
