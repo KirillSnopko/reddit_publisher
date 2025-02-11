@@ -78,7 +78,7 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
             }
         }
     } catch (error) {
-        console.error(`Error fetching posts for ${subreddit}:`, error);
+        console.error(`Error fetching posts for ${subreddit}:`, error.response ? error.response.data : error.message);
     }
 }
 
