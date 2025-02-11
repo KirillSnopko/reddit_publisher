@@ -1,0 +1,44 @@
+name: Reddit Downloader
+
+on:
+  schedule:
+    - cron: "0 */5 * * *" # Запуск каждые 5 часов
+  workflow_dispatch: # Возможность запуска вручную
+
+jobs:
+  download-reddit-posts:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Клонируем репозиторий
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Устанавливаем Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      # Устанавливаем зависимости
+      - name: Install dependencies
+        run: npm install
+
+      # Запускаем скрипт для скачивания постов
+      - name: Download Reddit Posts
+        run: |
+          node images.js
+        env:
+         # BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+         # CHAT_ID: ${{ secrets.CHAT_ID }}
+
+      # Сохраняем идентификатор последнего поста в репозиторий
+      - name: Commit last index file
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git add .
+          git commit -m "Update last post index" || echo "No changes to commit"
+          git push origin HEAD
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
