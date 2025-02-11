@@ -28,7 +28,7 @@ jobs:
       - name: Download Reddit Posts
         run: |
           node images.js
-        env:
+       # env:
          # BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
          # CHAT_ID: ${{ secrets.CHAT_ID }}
 
