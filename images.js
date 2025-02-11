@@ -45,8 +45,9 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
 
     makeDirectories();
     try {
+        console.log('reddit request');
         const response = await axios.get(
-            `https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`,
+            `https://reddit-proxy.artsyom-avanesov.workers.dev/?url=https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`,
             {
                 headers: {
                     'User-Agent': 'github.com/KirillSnopko/reddit_publisher/job',
@@ -55,6 +56,8 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
             },
         );
         const data = response.data;
+
+        console.log('reddit response: ' + data);
 
         if (data.message === 'Not Found' || !data.data.children.length) {
             throw new Error('Subreddit not found or private.');
@@ -74,6 +77,7 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
             try {
                 await processPost(child.data);
             } catch (e) {
+                console.log('processPost error: ' + e.message);
                 log(e, true);
             }
         }
