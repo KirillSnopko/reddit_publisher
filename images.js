@@ -3,6 +3,7 @@ const fs = require('fs');
 const axios = require('axios');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
+const https = require('https');
 
 // Configuration and constants
 let config = require('./user_config_DEFAULT.json');
@@ -48,8 +49,9 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
             `https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`,
             {
                 headers: {
-                                        'User-Agent': 'MyRedditDownloaderScript/1.0', 
-                }
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                },
+                httpsAgent: new https.Agent({ rejectUnauthorized: false })
             },
         );
         const data = response.data;
