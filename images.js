@@ -49,7 +49,7 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
             `https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`,
             {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'User-Agent': 'github.com/KirillSnopko/reddit_publisher/job',
                 },
                 httpsAgent: new https.Agent({ rejectUnauthorized: false })
             },
