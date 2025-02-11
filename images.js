@@ -28,11 +28,14 @@ let downloadedPosts = {
 startScript();
 
 function startScript() {
+    console.log('Start');
     const reddit = subredditList[0];
+    console.log('subreddit: ' + reddit);
     if (!fs.existsSync(reddit + lastIndexSuff)) {
         fs.writeFileSync(reddit + lastIndexSuff, '');
     }
     const lastIndex = fs.readFileSync(reddit + lastIndexSuff, 'utf8');
+    console.log('last index: ' + lastIndex);
     downloadSubredditPosts(reddit, lastIndex);
 }
 
@@ -42,7 +45,12 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
     makeDirectories();
     try {
         const response = await axios.get(
-            `https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`
+            `https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`,
+            {
+                headers: {
+                    'User-Agent': 'MyRedditDownloaderScript/1.0', // Replace with a unique identifier
+                }
+            },
         );
         const data = response.data;
 
@@ -189,22 +197,12 @@ async function downloadMediaFile(url, filePath) {
     }
 }
 
-function downloadNextSubreddit() {
-    const nextIndex = (currentSubredditIndex + 1) % subredditList.length;
-    if (nextIndex === 0) return checkIfDone();
-    downloadSubredditPosts(subredditList[nextIndex]);
-}
-
 function makeDirectories() {
     if (!fs.existsSync(downloadDirectoryBase)) fs.mkdirSync(downloadDirectoryBase, { recursive: true });
     if (config.separate_clean_nsfw) {
         fs.mkdirSync(`${downloadDirectoryBase}/clean`, { recursive: true });
         fs.mkdirSync(`${downloadDirectoryBase}/nsfw`, { recursive: true });
     }
-}
-
-function numberOfPostsRemaining() {
-    return numberOfPosts - Object.values(downloadedPosts).reduce((a, b) => a + b, 0);
 }
 
 function getFileName(post) {
