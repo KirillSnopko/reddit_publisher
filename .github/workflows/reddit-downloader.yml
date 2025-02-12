@@ -29,7 +29,7 @@ jobs:
         run: |
           node images.js
         env:
-          SUBREDDIT_LIST: ["Pikabu"]
+          SUBREDDIT_LIST: '["Pikabu"]'
           BOT_TOKEN: "7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ"
           CHAT_ID: "-1002342607540"
 
