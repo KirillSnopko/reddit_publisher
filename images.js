@@ -7,12 +7,14 @@ const https = require('https');
 
 // Configuration and constants
 let config = require('./user_config_DEFAULT.json');
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const CHAT_ID = process.env.CHAT_ID;
+
+const BOT_TOKEN = process.env.BOT_TOKEN; //"7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ";
+const CHAT_ID = process.env.CHAT_ID; //-1002342607540
+let subredditList = process.env.SUBREDDIT_LIST != null ? JSON.parse(process.env.SUBREDDIT_LIST) : ['Pikabu', 'MurderedByWords'];
+let numberOfPosts = process.env.NUMBER_OF_POSTS ?? 5;
+
 const lastIndexSuff = '_last_index.txt';
 const logFormat = 'txt';
-let subredditList = process.env.SUBREDDIT_LIST != null ? JSON.parse(process.env.SUBREDDIT_LIST) : ['Pikabu'];
-let numberOfPosts = process.env.NUMBER_OF_POSTS ?? 5;
 let sorting = 'top';
 let time = 'all';
 let downloadDirectoryBase = './downloads';
@@ -28,7 +30,7 @@ let downloadedPosts = {
 
 startScript();
 
-function startScript() {
+async function startScript() {
     console.log('Start');
     console.log('subreddits: ' + process.env.SUBREDDIT_LIST);
 
@@ -40,7 +42,7 @@ function startScript() {
         const lastIndex = fs.readFileSync(reddit + lastIndexSuff, 'utf8');
         console.log('last index: ' + lastIndex);
         try {
-            downloadSubredditPosts(reddit, lastIndex);
+            await downloadSubredditPosts(reddit, lastIndex);
         } catch (error) {
             console.log('Error with subreddit: ' + reddit + '. Error message: ' + error.message);
         }
@@ -52,7 +54,6 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
 
     makeDirectories();
     try {
-        console.log('reddit request');
         const response = await axios.get(
             `https://reddit-proxy.artsyom-avanesov.workers.dev/?url=https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${numberOfPosts}&after=${lastPostId}`,
             {
@@ -64,7 +65,7 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
         );
         const data = response.data;
 
-        console.log('reddit response: ' + data);
+        console.log(`reddit request [${subreddit}]: ${data.data.children != null ? 'OK' : 'FAIL'}`);
 
         if (data.message === 'Not Found' || !data.data.children.length) {
             throw new Error('Subreddit not found or private.');
@@ -80,9 +81,9 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
         if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath, { recursive: true });
 
         for (const child of data.data.children) {
-            await sleep();
             try {
                 await processPost(child.data);
+                await sleep();
             } catch (e) {
                 console.log('processPost error: ' + e.message);
                 log(e, true);
@@ -99,10 +100,13 @@ async function processPost(post) {
         if (post.post_hint === 'image') {
             await sendImageToTelegram(post);
         } else if (post.post_hint.includes('video')) {
+            console.log('Videos are not being sent yet');
             // await sendVideoToTelegram(post);
         }
     } else if (postType === 'gallery') {
         await sendGalleryToTelegram(post);
+    } else {
+        console.log(`Unsupported type ${postType} (${post.post_hint})`);
     }
 }
 
