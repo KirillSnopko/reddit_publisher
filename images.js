@@ -30,6 +30,11 @@ startScript();
 
 function startScript() {
     console.log('Start');
+    console.log('subreddits: ' + subredditList.join());
+    console.log('subreddits: ' + process.env.SUBREDDIT_LIST);
+    console.log('token: ' + process.env.BOT_TOKEN);
+    console.log('channel id: ' + process.env.CHAT_ID);
+
 
     for (const reddit of subredditList) {
         console.log('subreddit: ' + reddit);
