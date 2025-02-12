@@ -28,9 +28,10 @@ jobs:
       - name: Download Reddit Posts
         run: |
           node images.js
-       # env:
-         # BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-         # CHAT_ID: ${{ secrets.CHAT_ID }}
+        env:
+          SUBREDDIT_LIST: ["Pikabu"]
+          BOT_TOKEN: "7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ"
+          CHAT_ID: "-1002342607540"
 
       # Сохраняем идентификатор последнего поста в репозиторий
       - name: Commit last index file

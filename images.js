@@ -7,11 +7,11 @@ const https = require('https');
 
 // Configuration and constants
 let config = require('./user_config_DEFAULT.json');
-const BOT_TOKEN = '7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ';
-const CHAT_ID = '-1002342607540';
+const BOT_TOKEN = process.env.BOT_TOKEN; //'7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ';
+const CHAT_ID =  process.env.CHAT_ID; //'-1002342607540';
 const lastIndexSuff = '_last_index.txt';
 const logFormat = 'txt';
-let subredditList = ['Pikabu'];
+let subredditList = process.env.SUBREDDIT_LIST ?? ['Pikabu'];
 let numberOfPosts = 5;
 let sorting = 'top';
 let time = 'all';
@@ -30,14 +30,20 @@ startScript();
 
 function startScript() {
     console.log('Start');
-    const reddit = subredditList[0];
-    console.log('subreddit: ' + reddit);
-    if (!fs.existsSync(reddit + lastIndexSuff)) {
-        fs.writeFileSync(reddit + lastIndexSuff, '');
+
+    for (const reddit of subredditList) {
+        console.log('subreddit: ' + reddit);
+        if (!fs.existsSync(reddit + lastIndexSuff)) {
+            fs.writeFileSync(reddit + lastIndexSuff, '');
+        }
+        const lastIndex = fs.readFileSync(reddit + lastIndexSuff, 'utf8');
+        console.log('last index: ' + lastIndex);
+        try {
+            downloadSubredditPosts(reddit, lastIndex);
+        } catch (error) {
+            console.log('Error with subreddit: ' + reddit + '. Error message: ' + error.message);
+        }
     }
-    const lastIndex = fs.readFileSync(reddit + lastIndexSuff, 'utf8');
-    console.log('last index: ' + lastIndex);
-    downloadSubredditPosts(reddit, lastIndex);
 }
 
 async function downloadSubredditPosts(subreddit, lastPostId) {
