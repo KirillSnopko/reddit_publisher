@@ -7,12 +7,12 @@ const https = require('https');
 
 // Configuration and constants
 let config = require('./user_config_DEFAULT.json');
-const BOT_TOKEN = process.env.BOT_TOKEN; //'7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ';
-const CHAT_ID =  process.env.CHAT_ID; //'-1002342607540';
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const CHAT_ID = process.env.CHAT_ID;
 const lastIndexSuff = '_last_index.txt';
 const logFormat = 'txt';
-let subredditList = process.env.SUBREDDIT_LIST!=null?JSON.parse(process.env.SUBREDDIT_LIST) : ['Pikabu'];
-let numberOfPosts = 5;
+let subredditList = process.env.SUBREDDIT_LIST != null ? JSON.parse(process.env.SUBREDDIT_LIST) : ['Pikabu'];
+let numberOfPosts = process.env.NUMBER_OF_POSTS ?? 5;
 let sorting = 'top';
 let time = 'all';
 let downloadDirectoryBase = './downloads';
@@ -30,11 +30,7 @@ startScript();
 
 function startScript() {
     console.log('Start');
-    console.log('subreddits: ' + subredditList.join());
     console.log('subreddits: ' + process.env.SUBREDDIT_LIST);
-    console.log('token: ' + process.env.BOT_TOKEN);
-    console.log('channel id: ' + process.env.CHAT_ID);
-
 
     for (const reddit of subredditList) {
         console.log('subreddit: ' + reddit);

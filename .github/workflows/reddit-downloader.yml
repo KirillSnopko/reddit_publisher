@@ -29,9 +29,10 @@ jobs:
         run: |
           node images.js
         env:
-          SUBREDDIT_LIST: '["Pikabu"]'
+          SUBREDDIT_LIST: '["Pikabu", "TikTokCringe"]'
+          NUMBER_OF_POSTS: "5"
           BOT_TOKEN: "7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ"
-          CHAT_ID: "-1002342607540"
+          CHAT_ID: "-1002342607540"          
 
       # Сохраняем идентификатор последнего поста в репозиторий
       - name: Commit last index file
