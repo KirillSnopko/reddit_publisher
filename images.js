@@ -11,7 +11,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN; //'7010774003:AAG_QVhmaE_QERw1hUU9CFXP0
 const CHAT_ID =  process.env.CHAT_ID; //'-1002342607540';
 const lastIndexSuff = '_last_index.txt';
 const logFormat = 'txt';
-let subredditList = process.env.SUBREDDIT_LIST ?? ['Pikabu'];
+let subredditList = process.env.SUBREDDIT_LIST!=null?JSON.parse(process.env.SUBREDDIT_LIST) : ['Pikabu'];
 let numberOfPosts = 5;
 let sorting = 'top';
 let time = 'all';
