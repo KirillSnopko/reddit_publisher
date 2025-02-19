@@ -3,6 +3,11 @@ const fs = require('fs');
 const axios = require('axios');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('ffmpeg-static'); // Optional: Use ffmpeg-static
+const FormData = require('form-data');
+
+// Set the FFmpeg path explicitly
+ffmpeg.setFfmpegPath(ffmpegPath || '/path/to/ffmpeg');
 const https = require('https');
 
 // Configuration and constants
@@ -10,8 +15,8 @@ let config = require('./user_config_DEFAULT.json');
 
 const BOT_TOKEN = process.env.BOT_TOKEN; //"7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ";
 const CHAT_ID = process.env.CHAT_ID; //-1002342607540
-let subredditList = process.env.SUBREDDIT_LIST != null ? JSON.parse(process.env.SUBREDDIT_LIST) : ['Pikabu', 'MurderedByWords'];
-let numberOfPosts = process.env.NUMBER_OF_POSTS ?? 5;
+let subredditList = process.env.SUBREDDIT_LIST != null ? JSON.parse(process.env.SUBREDDIT_LIST) : [/*'Pikabu', 'MurderedByWords',*/ 'TikTokCringe'];
+let numberOfPosts = process.env.NUMBER_OF_POSTS ?? 1;
 
 const lastIndexSuff = '_last_index.txt';
 const logFormat = 'txt';
@@ -96,12 +101,11 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
 
 async function processPost(post) {
     const postType = getPostType(post);
-    if (postType === 'media' && post.url) {
+    if ((postType === 'media' && post.url) || post.post_hint.includes('video')) {
         if (post.post_hint === 'image') {
             await sendImageToTelegram(post);
         } else if (post.post_hint.includes('video')) {
-            console.log('Videos are not being sent yet');
-            // await sendVideoToTelegram(post);
+            await sendVideoToTelegram(post);
         }
     } else if (postType === 'gallery') {
         await sendGalleryToTelegram(post);
@@ -127,12 +131,38 @@ async function sendImageToTelegram(post) {
 }
 
 async function sendVideoToTelegram(post) {
-    const videoUrl = post.secure_media?.reddit_video?.fallback_url || post.media?.reddit_video?.fallback_url;
+    var videoUrl = post.secure_media?.reddit_video?.fallback_url?.split('?')[0];
     if (!videoUrl) return;
 
     const downloadDir = `downloads/${subredditList[0]}`;
     const videoFileName = getFileName(post) + '.mp4';
-    const audioUrl = videoUrl.substring(0, videoUrl.lastIndexOf('/') + 1) + 'audio';
+
+    let audio = false;
+    var audioUrl = `${post.secure_media?.reddit_video?.fallback_url?.split('DASH')[0]}audio`;//videoUrl.substring(0, videoUrl.lastIndexOf('/') + 1) + 'audio';
+
+    if (videoUrl.match('.mp4')) {
+        audioUrl = `${videoUrl.split('_')[0]}_audio.mp4`
+    }
+
+    // test the existence of audio
+    await fetch(audioUrl, { method: "HEAD" }).then(r => {
+        if (Number(r.status) === 200) {
+            audio = true
+        }
+    }).catch(() => { })
+
+    // fallback for videos with variable audio quality
+    if (!audio) {
+        audioUrl = `${videoUrl.split('_')[0]}_AUDIO_128.mp4`
+        await fetch(audioUrl, { method: "HEAD" }).then(r => {
+            if (Number(r.status) === 200) {
+                audio = true
+            }
+        }).catch(() => { })
+    }
+
+    if (!audio) return;
+
     const audioFileName = videoFileName.replace('.mp4', '-audio.mp4');
 
     const videoFilePath = `${downloadDir}/${videoFileName}`;
@@ -144,33 +174,47 @@ async function sendVideoToTelegram(post) {
             downloadMediaFile(videoUrl, videoFilePath),
             downloadMediaFile(audioUrl, audioFilePath),
         ]);
+        var test = await new Promise((resolve, reject) => {
+            ffmpeg()
+                .input(videoFilePath)
+                .input(audioFilePath)
+                .output(mergedFilePath)
+                .on('end', () => {
+                    console.log('Merge completed successfully.');
+                    resolve();
+                })
+                .on('error', (err) => {
+                    console.error('An error occurred while merging files:', err.message);
+                    reject(err); // Reject the promise if an error occurs
+                })
+                .run();
+        });
 
-        ffmpeg()
-            .input(videoFilePath)
-            .input(audioFilePath)
-            .output(mergedFilePath)
-            .on('end', () => {
-                fs.unlinkSync(videoFilePath);
-                fs.unlinkSync(audioFilePath);
-            })
-            .run();
+        const formData = new FormData();
+        formData.append('chat_id', CHAT_ID); // Replace CHAT_ID with your actual chat ID
+        formData.append('video', fs.createReadStream(mergedFilePath), { filename: 'video.mp4' }); // Attach the video file
+        formData.append('caption', post.title); // Add the caption
 
         await axios.post(
             `https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`,
-            null,
-            {
-                params: {
-                    chat_id: CHAT_ID,
-                    video: fs.createReadStream(mergedFilePath),
-                    caption: post.title,
-                },
-            }
+            formData,
         );
         console.log('Video sent successfully!');
     } catch (error) {
         console.error('Error processing video:', error.message);
     } finally {
-        if (fs.existsSync(mergedFilePath)) fs.unlinkSync(mergedFilePath);
+        if (fs.existsSync(mergedFilePath)) {
+            fs.unlinkSync(mergedFilePath);
+            console.log(`Remove merged file:${mergedFilePath}`);
+        }
+        if (fs.existsSync(videoFilePath)) {
+            fs.unlinkSync(videoFilePath);
+            console.log(`Remove video file:${videoFilePath}`);
+        }
+        if (fs.existsSync(audioFilePath)) {
+            fs.unlinkSync(audioFilePath);
+            console.log(`Remove audio file:${audioFilePath}`);
+        }
     }
 }
 
@@ -229,9 +273,9 @@ function getFileName(post) {
         fileName += `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
     if (config.file_naming_scheme.showScore) fileName += `_score=${post.score}`;
-    if (config.file_naming_scheme.showSubreddit) fileName += `_${post.subreddit}`;
-    if (config.file_naming_scheme.showAuthor) fileName += `_${post.author}`;
-    if (config.file_naming_scheme.showTitle) fileName += `_${sanitizeFileName(post.title)}`;
+    //if (config.file_naming_scheme.showSubreddit) fileName += `_${post.subreddit}`;
+    //if (config.file_naming_scheme.showAuthor) fileName += `_${post.author}`;
+    // if (config.file_naming_scheme.showTitle) fileName += `_${sanitizeFileName(post.title)}`;
     return fileName.slice(0, 240).replace(/[\uFE0E\uFE0F]/g, '').replace(/[^a-zA-Z0-9_-]/g, '-');
 }
 
