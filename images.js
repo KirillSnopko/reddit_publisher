@@ -13,13 +13,13 @@ const https = require('https');
 // Configuration and constants
 let config = require('./user_config_DEFAULT.json');
 
-const BOT_TOKEN = process.env.BOT_TOKEN; //"7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ";
-const CHAT_ID = process.env.CHAT_ID; //-1002342607540
+const BOT_TOKEN = process.env.BOT_TOKEN ?? "7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ";
+const CHAT_ID = process.env.CHAT_ID ?? -1002342607540;
 let subredditList = process.env.SUBREDDIT_LIST != null ? JSON.parse(process.env.SUBREDDIT_LIST) : [/*'Pikabu', 'MurderedByWords',*/ 'TikTokCringe'];
 let numberOfPosts = process.env.NUMBER_OF_POSTS ?? 1;
 
-const VK_TOKEN = process.env.VK_TOKEN;
-const vsGroups = process.env.VK_GROUP_LIST != null ? JSON.parse(process.env.VK_GROUP_LIST) : [-1];
+const VK_TOKEN = process.env.VK_TOKEN; 
+const vsGroups = process.env.VK_GROUP_LIST != null ? JSON.parse(process.env.VK_GROUP_LIST) : [-166517957];
 
 const lastIndexSuff = '_last_index.txt';
 const logFormat = 'txt';
@@ -80,10 +80,7 @@ async function startScript() {
             fs.writeFileSync(file, result.next_from);
 
             for (const post of result.items) {
-                const mediaUrls = extractMediaFromPost(post);
-                if (mediaUrls.length > 0) {
-                    await sendMediaToTelegram(mediaUrls);
-                }
+                await sendVkPostToTelegram(post);
             }
 
             console.log('Posts sent successfully.');
@@ -358,52 +355,110 @@ async function fetchVkPosts(vkGroupId, offset) {
     }
 }
 
-// Function to extract media URLs from VK posts
-function extractMediaFromPost(post) {
-    const mediaUrls = [];
+async function sendVkPostToTelegram(post) {
 
-    if (post.attachments) {
-        post.attachments.forEach(attachment => {
-            switch (attachment.type) {
-                case 'photo':
-                    // Get the highest resolution photo URL
-                    mediaUrls.push(attachment.photo.sizes.pop().url);
-                    console.log('Post type: photo');
-                    break;
-                case 'video':
-                    // Video URL requires additional processing via the video.get method
-                    mediaUrls.push(`vk.com/video${attachment.video.owner_id}_${attachment.video.id}`);
-                    console.log('Post type: video');
-                    break;
-            }
-        });
+    if (!post.attachments) {
+        console.log('Skip post, empty attachments');
+        return;
     }
 
-    return mediaUrls;
+    var attachments = post.attachments;
+
+    const imageUrls = [];
+    const videoUrls = [];
+    var title = post.text;
+    const prefix = 'Video:';
+
+    for (const attachment of attachments) {
+        switch (attachment.type) {
+            case 'photo':
+                imageUrls.push(attachment.photo.sizes.pop().url);
+                console.log('Post type: photo');
+                break;
+            case 'video':
+                var videoUrl = await getVkVideoUrl(attachment.video.owner_id, attachment.video.id, attachment.video.access_key);
+
+                if (videoUrl != '' && videoUrl != null) {
+                    console.log('Video: receice correct link');
+                    videoUrls.push(videoUrl);
+                } else {
+                    console.log('Video: use as text');
+                    title += `\n${prefix} vk.com/video${attachment.video.owner_id}_${attachment.video.id}`;
+                }
+
+                break;
+        }
+    };
+
+    if (videoUrls.length == 0 && imageUrls.length == 0) {
+        return;
+    }
+    else if (videoUrls.length == 1 && imageUrls.length == 0) {
+        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
+            chat_id: CHAT_ID,
+            video: videoUrls[0],
+            caption: text
+        });
+    }
+    else if (videoUrls.length == 0 && imageUrls.length == 1) {
+        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+            chat_id: CHAT_ID,
+            photo: imageUrls[0],
+            caption: text
+        });
+    } else {
+        var mediaArray = [];
+
+        videoUrls.forEach(url => {
+            mediaArray.push({
+                type: 'video',
+                media: url
+            });
+        });
+
+        imageUrls.forEach(url => {
+            mediaArray.push({
+                type: 'photo',
+                media: url
+            });
+        });
+
+        mediaArray[0].caption = title;
+
+        try {
+            await axios.post(
+                `https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`,
+                {
+                    chat_id: CHAT_ID,
+                    media: mediaArray,
+                    caption: title,
+                }
+            );
+            console.log('Gallery sent successfully!');
+        } catch (error) {
+            console.error('Error sending gallery:', error.message);
+        }
+    }
 }
 
-// Function to send media to Telegram
-async function sendMediaToTelegram(mediaUrls) {
-
-    console.log('Urls for sending:' + mediaUrls);
-
-    for (const url of mediaUrls) {
-        try {
-            if (url.includes('vk.com/video')) {
-                // Send video link as text (since Telegram Bot API doesn't support direct video links from VK)
-                await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                    chat_id: CHAT_ID,
-                    text: `Video: ${url}`
-                });
-            } else {
-                // Send image
-                await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-                    chat_id: CHAT_ID,
-                    photo: url
-                });
+async function getVkVideoUrl(ownerId, videoId, accessKey) {
+    try {
+        const response = await axios.get('https://api.vk.com/method/video.get', {
+            params: {
+                access_token: VK_TOKEN,
+                v: '5.131',
+                videos: `${ownerId}_${videoId}_${accessKey}`
             }
-        } catch (error) {
-            console.error(`Error sending media to Telegram. Media url ${url}. Error: ${error.message}`);
+        });
+
+        if (response.data && response.data.response && response.data.response.items.length > 0) {
+            return response.data.response.items[0].files?.mp4_720 || response.data.response.items[0].files?.mp4_480 || '';
+        } else {
+            console.warn('Failed to retrieve video URL:', response.data.error || 'Unknown error');
+            return '';
         }
+    } catch (error) {
+        console.error('Error fetching video URL:', error.message);
+        return '';
     }
 }
