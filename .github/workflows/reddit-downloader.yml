@@ -32,7 +32,9 @@ jobs:
           SUBREDDIT_LIST: '["Pikabu", "TikTokCringe"]'
           NUMBER_OF_POSTS: "5"
           BOT_TOKEN: "7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ"
-          CHAT_ID: "-1002342607540"          
+          CHAT_ID: "-1002342607540"   
+          VK_TOKEN: ${{ secrets.VK_TOKEN }} 
+          VK_GROUP_LIST: '["-1"]'
 
       # Сохраняем идентификатор последнего поста в репозиторий
       - name: Commit last index file

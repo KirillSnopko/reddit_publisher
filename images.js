@@ -18,6 +18,9 @@ const CHAT_ID = process.env.CHAT_ID; //-1002342607540
 let subredditList = process.env.SUBREDDIT_LIST != null ? JSON.parse(process.env.SUBREDDIT_LIST) : [/*'Pikabu', 'MurderedByWords',*/ 'TikTokCringe'];
 let numberOfPosts = process.env.NUMBER_OF_POSTS ?? 1;
 
+const VK_TOKEN = process.env.VK_TOKEN;
+const vsGroups = process.env.VK_GROUP_LIST != null ? JSON.parse(process.env.VK_GROUP_LIST) : [-1];
+
 const lastIndexSuff = '_last_index.txt';
 const logFormat = 'txt';
 let sorting = 'top';
@@ -36,7 +39,7 @@ let downloadedPosts = {
 startScript();
 
 async function startScript() {
-    console.log('Start');
+    console.log('Start [reddit]');
     console.log('subreddits: ' + process.env.SUBREDDIT_LIST);
 
     for (const reddit of subredditList) {
@@ -50,6 +53,39 @@ async function startScript() {
             await downloadSubredditPosts(reddit, lastIndex);
         } catch (error) {
             console.log('Error with subreddit: ' + reddit + '. Error message: ' + error.message);
+        }
+    }
+
+    console.log('Start [vk]');
+    console.log('vk_groups: ' + vsGroups);
+
+    for (const group of vsGroups) {
+        console.log('group: ' + group);
+        var file = `vk_${group}${lastIndexSuff}`;
+        if (!fs.existsSync(group + lastIndexSuff)) {
+            fs.writeFileSync(file);
+        }
+        const offset = fs.readFileSync(file, 'utf8');
+        console.log('last index: ' + offset);
+        try {
+            const result = await fetchVkPosts(group, offset);
+            if (result == null || result.items.length === 0) {
+                console.log('No posts found.');
+                return;
+            }
+
+            fs.writeFileSync(file, result.next_from);
+
+            for (const post of result.items) {
+                const mediaUrls = extractMediaFromPost(post);
+                if (mediaUrls.length > 0) {
+                    await sendMediaToTelegram(mediaUrls);
+                }
+            }
+
+            console.log('Posts sent successfully.');
+        } catch (error) {
+            console.log('Error with group: ' + group + '. Error message: ' + error.message);
         }
     }
 }
@@ -82,8 +118,8 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
         downloadedPosts.subreddit = data.data.children[0].data.subreddit;
         const isOver18 = data.data.children[0].data.over_18 ? 'nsfw' : 'clean';
 
-       /* const downloadPath = `${downloadDirectoryBase}/${subreddit}`;
-        if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath, { recursive: true });*/
+        /* const downloadPath = `${downloadDirectoryBase}/${subreddit}`;
+         if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath, { recursive: true });*/
 
         for (const child of data.data.children) {
             try {
@@ -133,9 +169,9 @@ async function sendImageToTelegram(post) {
 async function sendVideoToTelegram(post) {
     var videoUrl = post.secure_media?.reddit_video?.fallback_url?.split('?')[0];
     if (!videoUrl) return;
-  
+
     const downloadDir = `${downloadDirectoryBase}/${post.subreddit}`;
-  
+
     if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
 
     const videoFileName = getFileName(post) + '.mp4';
@@ -292,4 +328,79 @@ function checkIfDone() {
 
 function sleep() {
     return new Promise((resolve) => setTimeout(resolve, postDelayMilliseconds));
+}
+
+async function fetchVkPosts(vkGroupId, offset) {
+    try {
+        const response = await axios.get('https://api.vk.com/method/wall.get', {
+            params: {
+                access_token: VK_TOKEN,
+                v: '5.131', // VK API version
+                owner_id: vkGroupId, // Group ID
+                count: numberOfPosts, // Number of posts to fetch
+                filter: 'owner', // Fetch only posts from the group itself
+                offset: offset
+            }
+        });
+
+        if (response.data && response.data.response) {
+            return response.data.response;
+        } else {
+            console.error('Error fetching VK posts:', response.data.error || 'Unknown error');
+            return null;
+        }
+    } catch (error) {
+        console.error('Error in fetchVkPosts:', error.message);
+        return null;
+    }
+}
+
+// Function to extract media URLs from VK posts
+function extractMediaFromPost(post) {
+    const mediaUrls = [];
+
+    if (post.attachments) {
+        post.attachments.forEach(attachment => {
+            switch (attachment.type) {
+                case 'photo':
+                    // Get the highest resolution photo URL
+                    mediaUrls.push(attachment.photo.sizes.pop().url);
+                    console.log('Post type: photo');
+                    break;
+                case 'video':
+                    // Video URL requires additional processing via the video.get method
+                    mediaUrls.push(`vk.com/video${attachment.video.owner_id}_${attachment.video.id}`);
+                    console.log('Post type: video');
+                    break;
+            }
+        });
+    }
+
+    return mediaUrls;
+}
+
+// Function to send media to Telegram
+async function sendMediaToTelegram(mediaUrls) {
+
+    console.log('Urls for sending:' + mediaUrls);
+
+    for (const url of mediaUrls) {
+        try {
+            if (url.includes('vk.com/video')) {
+                // Send video link as text (since Telegram Bot API doesn't support direct video links from VK)
+                await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    chat_id: CHAT_ID,
+                    text: `Video: ${url}`
+                });
+            } else {
+                // Send image
+                await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                    chat_id: CHAT_ID,
+                    photo: url
+                });
+            }
+        } catch (error) {
+            console.error(`Error sending media to Telegram. Media url ${url}. Error: ${error.message}`);
+        }
+    }
 }
