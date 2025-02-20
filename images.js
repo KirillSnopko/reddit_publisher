@@ -62,8 +62,11 @@ async function startScript() {
     for (const group of vsGroups) {
         console.log('group: ' + group);
         var file = `vk_${group}${lastIndexSuff}`;
-        if (!fs.existsSync(group + lastIndexSuff)) {
+        console.log('ckeck file: ' + file);
+        if (!fs.existsSync(file)) {
+            console.log('is not exist: ' + file);
             fs.writeFileSync(file);
+            console.log('create file: ' + file);
         }
         const offset = fs.readFileSync(file, 'utf8');
         console.log('last index: ' + offset);
