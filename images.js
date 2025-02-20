@@ -82,8 +82,8 @@ async function downloadSubredditPosts(subreddit, lastPostId) {
         downloadedPosts.subreddit = data.data.children[0].data.subreddit;
         const isOver18 = data.data.children[0].data.over_18 ? 'nsfw' : 'clean';
 
-        const downloadPath = `${downloadDirectoryBase}/${isOver18}/${subreddit}`;
-        if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath, { recursive: true });
+       /* const downloadPath = `${downloadDirectoryBase}/${subreddit}`;
+        if (!fs.existsSync(downloadPath)) fs.mkdirSync(downloadPath, { recursive: true });*/
 
         for (const child of data.data.children) {
             try {
@@ -133,8 +133,11 @@ async function sendImageToTelegram(post) {
 async function sendVideoToTelegram(post) {
     var videoUrl = post.secure_media?.reddit_video?.fallback_url?.split('?')[0];
     if (!videoUrl) return;
+  
+    const downloadDir = `${downloadDirectoryBase}/${post.subreddit}`;
+  
+    if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
 
-    const downloadDir = `downloads/${subredditList[0]}`;
     const videoFileName = getFileName(post) + '.mp4';
 
     let audio = false;
