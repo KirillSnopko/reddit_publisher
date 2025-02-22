@@ -22,9 +22,8 @@ const lastIndexSuff = '_last_index.txt';
 const downloadDirectoryBase = './downloads';
 
 //env variable
-const BOT_TOKEN = process.env.BOT_TOKEN ?? "7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ";
-const CHAT_ID = process.env.CHAT_ID ?? -1002342607540;
-const VK_TOKEN = process.env.VK_TOKEN ?? "vk1.a.Fxqcdk7KBgZFEj76PWHB-ih0dxaQZNxc8uQfL0dB-w4BMre2XSmSv-eAAAODTObtXzcL1qnEk2pVJTS1I219spMycnbAGUGZuxFUReUDW84UcNVP_ZPXrT98FXjFj26_EE-hS7d_tAuSGPWSqaIufJO8oy2oQg4DgZcdyXuQ8WU4OTUVz0FYkk7iRdQs1dSHDlwjWNe6NTDH5a6xju3hZw";
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const VK_TOKEN = process.env.VK_TOKEN;
 
 let sorting = 'top';
 let time = 'all';

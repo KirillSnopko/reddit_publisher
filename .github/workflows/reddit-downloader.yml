@@ -2,7 +2,7 @@ name: Reddit Downloader
 
 on:
   schedule:
-    - cron: "0 */5 * * *" # Запуск каждые 5 часов
+    - cron: "0 */12 * * *" # Запуск каждые 12 часов
   workflow_dispatch: # Возможность запуска вручную
 
 jobs:
@@ -29,12 +29,8 @@ jobs:
         run: |
           node images.js
         env:
-          SUBREDDIT_LIST: '["Pikabu", "TikTokCringe"]'
-          NUMBER_OF_POSTS: "3"
-          BOT_TOKEN: "7010774003:AAG_QVhmaE_QERw1hUU9CFXP0L5szxCCcrQ"
-          CHAT_ID: "-1002342607540"   
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }} 
           VK_TOKEN: ${{ secrets.VK_TOKEN }} 
-          VK_GROUP_LIST: '["-166517957"]'
 
       # Сохраняем идентификатор последнего поста в репозиторий
       - name: Commit last index file
