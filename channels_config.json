@@ -1,0 +1,29 @@
+[
+    {
+        "id": "-1002399295355",
+        "channel_name":"Mega Cringe",
+        "source": "reddit",
+        "sub_source": ["TikTokCringe"],
+        "type": [
+            "photo",
+            "video"
+        ],
+        "startDate": "2025-01-01",
+        "startId": "2025-01-01",
+        "dailyPosts": 3,
+        "messageSufix": "\n\n👉 Cringe Videos - <a href=\"https://t.me/cringe_youtube_tiktok_videos\">Subscribe</a>"
+    },
+    {
+        "id": "-1002253611666",
+        "channel_name":"Кринжык",
+        "source": "vk",
+        "sub_source": ["-166517957"],
+        "type": [
+            "photo",
+            "video"
+        ],
+        "startDate": "2025-01-01",
+        "dailyPosts": 3,
+        "messageSufix": "\n\n👉 <a href=\"https://t.me/trendovye_tiktok_instagram_video\">RU</a>, <a href=\"https://t.me/cringe_youtube_tiktok_videos\">EN</a> Подписаться"
+    }    
+]
