@@ -27,7 +27,7 @@ jobs:
       # Запускаем скрипт для скачивания постов
       - name: Download Reddit Posts
         run: |
-          node images.js
+          node start.js
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }} 
           VK_TOKEN: ${{ secrets.VK_TOKEN }} 

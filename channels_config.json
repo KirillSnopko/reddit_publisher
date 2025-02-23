@@ -5,12 +5,11 @@
         "source": "reddit",
         "sub_source": ["TikTokCringe"],
         "type": [
-            "photo",
+            "image",
             "video"
         ],
-        "startDate": "2025-01-01",
-        "startId": "2025-01-01",
-        "dailyPosts": 3,
+        "startId": "t3_1ht40wt",
+        "dailyPosts": 5,
         "messageSufix": "\n\n👉 Cringe Videos - <a href=\"https://t.me/cringe_youtube_tiktok_videos\">Subscribe</a>"
     },
     {
@@ -19,11 +18,11 @@
         "source": "vk",
         "sub_source": ["-166517957"],
         "type": [
-            "photo",
+            "image",
             "video"
         ],
-        "startDate": "2025-01-01",
-        "dailyPosts": 3,
+        "startId": "",
+        "dailyPosts": 5,
         "messageSufix": "\n\n👉 <a href=\"https://t.me/trendovye_tiktok_instagram_video\">RU</a>, <a href=\"https://t.me/cringe_youtube_tiktok_videos\">EN</a> Подписаться"
     }    
 ]
