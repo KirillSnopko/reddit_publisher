@@ -14,20 +14,34 @@ async function startScript() {
         return;
     }
 
+    if (!fs.existsSync(lastIndexDir)) {
+        fs.mkdirSync(lastIndexDir, { recursive: true });
+    }
+
     for (const channel of configChannel) {
-        if (channel.dailyPosts <= 0) {
-            console.log('Skip channel ' + channel.channel_name);
+        console.log('---------------> СHANNEL: ' + channel.channel_name);
+        
+        var sources = channel.sources;
+
+        if (sources == null || sources.length == 0) {
+            console.log('The channel has no sources');
             continue;
         }
-    
-        if (!fs.existsSync(lastIndexDir)) {
-            fs.mkdirSync(lastIndexDir, { recursive: true });
-        }
-    
-        if (channel.source == SOURCE.REDDIT) {
-            await useReddit(channel);
-        } else if (channel.source == SOURCE.VK) {
-            await useVk(channel);
+       
+        for(const source of sources){
+            
+            console.log('------------------> SOURCE: ' + source.name);
+            
+            if (source.dailyPosts <= 0) {
+                console.log('Skip source');
+                continue;
+            }
+
+            if (source.name == SOURCE.REDDIT) {
+                await useReddit(channel, source);
+            } else if (source.name == SOURCE.VK) {
+                await useVk(channel, source);
+            }
         }
     }
 }

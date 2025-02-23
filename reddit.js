@@ -6,66 +6,66 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static'); // Optional: Use ffmpeg-static
 ffmpeg.setFfmpegPath(ffmpegPath || '/path/to/ffmpeg');
 
-const { BOT_TOKEN, SOURCE, MEDIA_TYPE, lastIndexDir, lastIndexSuff, downloadDirectoryBase, combineStringsForCaption } = require ('./system.js');
+const { BOT_TOKEN, SOURCE, MEDIA_TYPE, lastIndexDir, lastIndexSuff, downloadDirectoryBase, combineStringsForCaption } = require('./system.js');
 
 let sorting = 'top';
 let time = 'all';
 const postDelayMilliseconds = 250;
 
- async function useReddit(channelConfig) {
-    if (channelConfig.source != SOURCE.REDDIT) {
+async function useReddit(channelSettings, currentSource) {
+    if (currentSource.name != SOURCE.REDDIT) {
         return;
     }
 
-    console.log('Start [reddit]');
+    const sub_source = currentSource.sub_source;
 
-    for (const reddit of channelConfig.sub_source) {
+    console.log('------> Start [reddit]: ' + sub_source);
 
-        console.log('subreddit: ' + reddit);
+    let file = `${lastIndexDir}/${channelSettings.channel_name}_${SOURCE.REDDIT}_${sub_source}${lastIndexSuff}`;
+    if (!fs.existsSync(file)) {
+        fs.writeFileSync(file, '');
+    }
 
-        let file = `${lastIndexDir}/${SOURCE.REDDIT}_${reddit}${lastIndexSuff}`;
-        if (!fs.existsSync(file)) {
-            fs.writeFileSync(file, '');
+    const lastIndex = fs.readFileSync(file, 'utf8');
+    console.log('last index: ' + lastIndex);
+
+
+    try {
+
+        if (!lastIndex || lastIndex == '' || lastIndex == null) {
+            lastIndex = currentSource.startId;
         }
 
-        const lastIndex = fs.readFileSync(file, 'utf8');
-        console.log('last index: ' + lastIndex);
+        const result = await fetchSubredditPosts(sub_source, lastIndex, currentSource.dailyPosts);
 
-
-        try {
-            const result = await fetchSubredditPosts(reddit, lastIndex, channelConfig);
-
-            if (result == null || result.length === 0) {
-                console.log('No posts found.');
-                continue;
-            }
-
-            const index = result[result.length - 1].data.name;
-            fs.writeFileSync(file, index);
-
-            for (const post of result) {
-                try {
-                    await processPost(post.data, channelConfig);
-                    await sleep();
-                } catch (e) {
-                    console.log('processPost error: ' + e.message);
-                    log(e, true);
-                }
-            }
-
-            console.log('Posts sent successfully.');
-        } catch (error) {
-            console.log('Error with subreddit: ' + reddit + '. Error message: ' + error.message);
+        if (result == null || result.length === 0) {
+            console.log('No posts found.');
+            return;
         }
+
+        const index = result[result.length - 1].data.name;
+        fs.writeFileSync(file, index);
+
+        for (const post of result) {
+            try {
+                await processPost(channelSettings.id, currentSource.type, channelSettings.messageSufix, post.data);
+                await sleep();
+            } catch (e) {
+                console.log('processPost error: ' + e.message);
+                log(e, true);
+            }
+        }
+
+        console.log('Posts sent successfully.');
+    } catch (error) {
+        console.log('Error with subreddit: ' + sub_source + '. Error message: ' + error.message);
     }
 }
 
-async function fetchSubredditPosts(subreddit, lastPostId, config) {
-    if (!lastPostId) lastPostId = config.startId;
-
+async function fetchSubredditPosts(subreddit, lastPostId, count) {
     try {
         const response = await axios.get(
-            `https://reddit-proxy.artsyom-avanesov.workers.dev/?url=https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${config.dailyPosts}&after=${lastPostId}`,
+            `https://reddit-proxy.artsyom-avanesov.workers.dev/?url=https://www.reddit.com/r/${subreddit}/${sorting}/.json?sort=${sorting}&t=${time}&limit=${count}&after=${lastPostId}`,
             {
                 headers: {
                     'User-Agent': 'github.com/KirillSnopko/reddit_publisher/job',
@@ -88,30 +88,30 @@ async function fetchSubredditPosts(subreddit, lastPostId, config) {
     }
 }
 
-async function processPost(post, config) {
+async function processPost(chatId, availableTypes, messageSufix, post) {
     const postType = getPostType(post);
-    const types = config.type;
+
     if ((postType === 'media' && post.url) || post.post_hint.includes('video')) {
-        if (post.post_hint === 'image' && types.includes(MEDIA_TYPE.IMAGE)) {
-            await sendImageToTelegram(post, config);
-        } else if (post.post_hint.includes('video') && types.includes(MEDIA_TYPE.VIDEO)) {
-            await sendVideoToTelegram(post, config);
+        if (post.post_hint === 'image' && availableTypes.includes(MEDIA_TYPE.IMAGE)) {
+            await sendImageToTelegram(chatId, messageSufix, post);
+        } else if (post.post_hint.includes('video') && availableTypes.includes(MEDIA_TYPE.VIDEO)) {
+            await sendVideoToTelegram(chatId, messageSufix, post);
         }
-    } else if (postType === 'gallery' && types.includes(MEDIA_TYPE.IMAGE)) {
-        await sendGalleryToTelegram(post, config);
+    } else if (postType === 'gallery' && availableTypes.includes(MEDIA_TYPE.IMAGE)) {
+        await sendGalleryToTelegram(chatId, messageSufix, post);
     } else {
         console.log(`Unsupported type ${postType} (${post.post_hint})`);
     }
 }
 
-async function sendImageToTelegram(post, config) {
+async function sendImageToTelegram(chatId, messageSufix, post) {
     try {
         await axios.post(
             `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
             {
-                chat_id: config.id,
+                chat_id: chatId,
                 photo: post.url,
-                caption: combineStringsForCaption(post.title, config.messageSufix),
+                caption: combineStringsForCaption(post.title, messageSufix),
                 parse_mode: 'HTML'
             }
         );
@@ -121,7 +121,7 @@ async function sendImageToTelegram(post, config) {
     }
 }
 
-async function sendVideoToTelegram(post, config) {
+async function sendVideoToTelegram(chatId, messageSufix, post) {
     var videoUrl = post.secure_media?.reddit_video?.fallback_url?.split('?')[0];
     if (!videoUrl) return;
 
@@ -185,9 +185,9 @@ async function sendVideoToTelegram(post, config) {
         });
 
         const formData = new FormData();
-        formData.append('chat_id', config.id); // Replace CHAT_ID with your actual chat ID
+        formData.append('chat_id', chatId); // Replace CHAT_ID with your actual chat ID
         formData.append('video', fs.createReadStream(mergedFilePath), { filename: 'video.mp4' }); // Attach the video file
-        formData.append('caption', combineStringsForCaption(post.title, config.messageSufix)); // Add the caption
+        formData.append('caption', combineStringsForCaption(post.title, messageSufix)); // Add the caption
         formData.append('parse_mode', 'HTML');
 
         await axios.post(
@@ -213,7 +213,7 @@ async function sendVideoToTelegram(post, config) {
     }
 }
 
-async function sendGalleryToTelegram(post, config) {
+async function sendGalleryToTelegram(chatId, messageSufix, post) {
     const mediaList = post.gallery_data.items.map(({ media_id }) => {
         const media = post.media_metadata[media_id];
         return { type: 'photo', media: media.s.u.replace('&', '&') };
@@ -223,9 +223,9 @@ async function sendGalleryToTelegram(post, config) {
         await axios.post(
             `https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`,
             {
-                chat_id: config.id,
+                chat_id: chatId,
                 media: mediaList,
-                caption: combineStringsForCaption(post.title, config.messageSufix),
+                caption: combineStringsForCaption(post.title, messageSufix),
                 parse_mode: 'HTML'
             }
         );

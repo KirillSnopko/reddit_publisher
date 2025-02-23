@@ -1,28 +1,56 @@
 [
     {
         "id": "-1002399295355",
-        "channel_name":"Mega Cringe",
-        "source": "reddit",
-        "sub_source": ["TikTokCringe"],
-        "type": [
-            "image",
-            "video"
+        "channel_name": "Mega Cringe",
+        "sources": [
+            {
+                "name": "reddit",
+                "sub_source": "TikTokCringe",
+                "type": [
+                    "image",
+                    "video"
+                ],
+                "startId": "t3_1ht40wt",
+                "dailyPosts": 2
+            },
+            {
+                "name": "vk",
+                "sub_source": "-162181333",
+                "type": [
+                    "image",
+                    "video"
+                ],
+                "startId": "",
+                "dailyPosts": 2
+            }
         ],
-        "startId": "t3_1ht40wt",
-        "dailyPosts": 5,
         "messageSufix": "\n\n👉 Cringe Videos - <a href=\"https://t.me/cringe_youtube_tiktok_videos\">Subscribe</a>"
     },
     {
         "id": "-1002253611666",
-        "channel_name":"Кринжык",
-        "source": "vk",
-        "sub_source": ["-166517957"],
-        "type": [
-            "image",
-            "video"
+        "channel_name": "Кринжык",
+        "sources": [
+            {
+                "name": "vk",
+                "sub_source": "-166517957",
+                "type": [
+                    "image",
+                    "video"
+                ],
+                "startId": "",
+                "dailyPosts": 2
+            },
+            {
+                "name": "vk",
+                "sub_source": "-178906384",
+                "type": [
+                    "image",
+                    "video"
+                ],
+                "startId": "",
+                "dailyPosts": 2
+            }
         ],
-        "startId": "",
-        "dailyPosts": 5,
         "messageSufix": "\n\n👉 <a href=\"https://t.me/trendovye_tiktok_instagram_video\">RU</a>, <a href=\"https://t.me/cringe_youtube_tiktok_videos\">EN</a> Подписаться"
-    }    
+    }
 ]

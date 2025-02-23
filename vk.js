@@ -5,8 +5,8 @@ const { BOT_TOKEN, SOURCE, MEDIA_TYPE, lastIndexDir, lastIndexSuff, VK_TOKEN, co
 
 
 
-async function useVk(channel) {
-    if (channel.source != SOURCE.VK) {
+async function useVk(channelSettings, currentSource) {
+    if (currentSource.name != SOURCE.VK) {
         return;
     }
 
@@ -15,59 +15,57 @@ async function useVk(channel) {
         return;
     }
 
-    console.log('Start [vk]');
-    console.log('vk_groups: ' + channel.sub_source);
-    let count = channel.dailyPosts * 2; //2 это кол-во итераций в день
+    const sub_source = currentSource.sub_source;
 
-    for (const group of channel.sub_source) {
+    console.log('------> Start [vk]:' + sub_source);
 
-        console.log('group: ' + group);
-
-        let file = `${lastIndexDir}/${SOURCE.VK}_${group}${lastIndexSuff}`;
-        console.log('ckeck file: ' + file);
-        if (!fs.existsSync(file)) {
-            console.log('is not exist: ' + file);
-            fs.writeFileSync(file, '');
-            console.log('create file: ' + file);           
+    let file = `${lastIndexDir}/${channelSettings.channel_name}_${SOURCE.VK}_${sub_source}${lastIndexSuff}`;
+  
+    console.log('ckeck file: ' + file);
+    if (!fs.existsSync(file)) {
+        console.log('is not exist: ' + file);
+        fs.writeFileSync(file, '');
+        console.log('create file: ' + file);
+    }
+  
+    let lastPostDate = fs.readFileSync(file, 'utf8');
+    console.log('last post date: ' + lastPostDate);
+   
+    try {
+        const result = await fetchVkPosts(sub_source, currentSource.dailyPosts * 2);//2 это кол-во итераций в день
+        if (result == null || result.items.length === 0) {
+            console.log('No posts found.');
+            return;
         }
-        let lastPostDate = fs.readFileSync(file, 'utf8');
-        console.log('last post date: ' + lastPostDate);
-        try {
-            const result = await fetchVkPosts(group, channel.dailyPosts);
-            if (result == null || result.items.length === 0) {
-                console.log('No posts found.');
-                continue;
-            }
 
-            var posts = result.items;
+        var posts = result.items;
 
-            if (lastPostDate == '') {
-                posts = posts.sort((a, b) => a.date - b.date).slice(0, channel.dailyPosts);
-            } else {
-                posts = posts.filter(x => x.date > lastPostDate).sort((a, b) => a.date - b.date).slice(0, channel.dailyPosts);
-            }
-
-            if (posts.length === 0) {
-                console.log('No actual posts found.');
-                continue;
-            }
-
-            lastPostDate = posts[posts.length - 1].date;
-
-            fs.writeFileSync(file, `${lastPostDate}`);
-
-            for (const post of posts) {
-                try {
-                    await sendVkPostToTelegram(post, channel);
-                } catch (error) {
-                    console.error('Error post: ', error.message);
-                }
-            }
-
-            console.log('VK Completed.');
-        } catch (error) {
-            console.log('Error with group: ' + group + '. Error message: ' + error.message);
+        if (lastPostDate == '') {
+            posts = posts.sort((a, b) => a.date - b.date).slice(0, currentSource.dailyPosts);
+        } else {
+            posts = posts.filter(x => x.date > lastPostDate).sort((a, b) => a.date - b.date).slice(0, currentSource.dailyPosts);
         }
+
+        if (posts.length === 0) {
+            console.log('No actual posts found.');
+            return;
+        }
+
+        lastPostDate = posts[posts.length - 1].date;
+
+        fs.writeFileSync(file, `${lastPostDate}`);
+
+        for (const post of posts) {
+            try {
+                await sendVkPostToTelegram(channelSettings.id, currentSource.type, channelSettings.messageSufix, post);
+            } catch (error) {
+                console.error('Error post: ', error.message);
+            }
+        }
+
+        console.log('VK Completed.');
+    } catch (error) {
+        console.log('Error with group: ' + sub_source + '. Error message: ' + error.message);
     }
 }
 
@@ -96,14 +94,12 @@ async function fetchVkPosts(vkGroupId, count) {
     }
 }
 
-async function sendVkPostToTelegram(post, config) {
+async function sendVkPostToTelegram(chatId, availableTypes, messageSufix, post) {
 
     if (!post.attachments) {
         console.log('Skip post, empty attachments');
         return;
     }
-    const types = config.type;
-    const chatId = config.id;
 
     var attachments = post.attachments;
 
@@ -113,10 +109,10 @@ async function sendVkPostToTelegram(post, config) {
     const prefix = 'Video:';
 
     for (const attachment of attachments) {
-        if (attachment.type == 'photo' && types.includes(MEDIA_TYPE.IMAGE)) {
+        if (attachment.type == 'photo' && availableTypes.includes(MEDIA_TYPE.IMAGE)) {
             imageUrls.push(attachment.photo.sizes.pop().url);
             console.log('Post type: photo')
-        } else if (attachment.type == 'video' && types.includes(MEDIA_TYPE.VIDEO)) {
+        } else if (attachment.type == 'video' && availableTypes.includes(MEDIA_TYPE.VIDEO)) {
             var videoUrl = await getVkVideoUrl(attachment.video.owner_id, attachment.video.id, attachment.video.access_key);
 
             if (videoUrl != '' && videoUrl != null) {
@@ -130,7 +126,7 @@ async function sendVkPostToTelegram(post, config) {
     }
 
     //max 1024
-    title = combineStringsForCaption(title, config.messageSufix);
+    title = combineStringsForCaption(title, messageSufix);
 
     if (videoUrls.length == 0 && imageUrls.length == 0) {
         return;
