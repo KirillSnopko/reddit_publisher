@@ -25,7 +25,7 @@ jobs:
         run: npm install
 
       # Запускаем скрипт для скачивания постов
-      - name: Download Reddit Posts
+      - name: Send posts
         run: |
           node start.js
         env:

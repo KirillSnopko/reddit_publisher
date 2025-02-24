@@ -26,9 +26,8 @@ async function useReddit(channelSettings, currentSource) {
         fs.writeFileSync(file, '');
     }
 
-    const lastIndex = fs.readFileSync(file, 'utf8');
+    let lastIndex = fs.readFileSync(file, 'utf8');
     console.log('last index: ' + lastIndex);
-
 
     try {
 

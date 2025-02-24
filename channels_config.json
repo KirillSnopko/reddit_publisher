@@ -33,8 +33,7 @@
             {
                 "name": "vk",
                 "sub_source": "-166517957",
-                "type": [
-                    "image",
+                "type": [               
                     "video"
                 ],
                 "startId": "",
@@ -43,8 +42,7 @@
             {
                 "name": "vk",
                 "sub_source": "-178906384",
-                "type": [
-                    "image",
+                "type": [        
                     "video"
                 ],
                 "startId": "",
