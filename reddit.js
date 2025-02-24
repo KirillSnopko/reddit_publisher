@@ -19,11 +19,12 @@ async function useReddit(channelSettings, currentSource) {
 
     const sub_source = currentSource.sub_source;
 
-    console.log('------> Start [reddit]: ' + sub_source);
-
     let file = `${lastIndexDir}/${channelSettings.channel_name}_${SOURCE.REDDIT}_${sub_source}${lastIndexSuff}`;
+    
     if (!fs.existsSync(file)) {
+        console.log('is not exist: ' + file);
         fs.writeFileSync(file, '');
+        console.log('create file: ' + file);
     }
 
     let lastIndex = fs.readFileSync(file, 'utf8');
@@ -38,7 +39,7 @@ async function useReddit(channelSettings, currentSource) {
         const result = await fetchSubredditPosts(sub_source, lastIndex, currentSource.dailyPosts);
 
         if (result == null || result.length === 0) {
-            console.log('No posts found.');
+            console.log('---------> No posts found. <---------');
             return;
         }
 

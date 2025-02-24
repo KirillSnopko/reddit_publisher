@@ -11,13 +11,11 @@ async function useVk(channelSettings, currentSource) {
     }
 
     if (VK_TOKEN == null) {
-        console.error('Skip vk: token is null');
+        console.error('!!!!!!!!!!!!___Skip vk: token is null__!!!!!!!!!!!!!!!!!!');
         return;
     }
 
     const sub_source = currentSource.sub_source;
-
-    console.log('------> Start [vk]:' + sub_source);
 
     let file = `${lastIndexDir}/${channelSettings.channel_name}_${SOURCE.VK}_${sub_source}${lastIndexSuff}`;
   
