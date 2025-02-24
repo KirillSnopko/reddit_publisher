@@ -1,14 +1,14 @@
 // NodeJS Dependencies
 const fs = require('fs');
 const { SOURCE, lastIndexDir } = require('./system.js');
-const { useReddit } = require( './reddit.js');
-const { useVk } = require( './vk.js');
+const { useReddit } = require('./reddit.js');
+const { useVk } = require('./vk.js');
 const configChannel = require('./channels_config.json');
 
 startScript();
 
 async function startScript() {
-    console.log('Start......');
+    console.log('-----------------------------------Start-----------------------------------');
     if (configChannel == null || configChannel.length == 0) {
         console.log('channel config is empty');
         return;
@@ -19,19 +19,21 @@ async function startScript() {
     }
 
     for (const channel of configChannel) {
-        console.log('---------------> СHANNEL: ' + channel.channel_name);
-        
+        console.log('---------------------------------------------------------> СHANNEL: ' + channel.channel_name);
+
         var sources = channel.sources;
 
         if (sources == null || sources.length == 0) {
             console.log('The channel has no sources');
             continue;
         }
-       
-        for(const source of sources){
-            
-            console.log('------------------> SOURCE: ' + source.name);
-            
+
+        for (const source of sources) {
+
+            console.log(`---------------------------------------> SOURCE: ${source.name} [${source.type}]`);
+            console.log(`------------------------------------------> TYPES: [${source.type}]`);
+            console.log(`------------------------------------------> COUNT: ${source.dailyPosts}`);
+
             if (source.dailyPosts <= 0) {
                 console.log('Skip source');
                 continue;
