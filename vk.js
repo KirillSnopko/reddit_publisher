@@ -18,53 +18,68 @@ async function useVk(channelSettings, currentSource) {
     const sub_source = currentSource.sub_source;
 
     let file = `${lastIndexDir}/${channelSettings.channel_name}_${SOURCE.VK}_${sub_source}${lastIndexSuff}`;
-  
+
     console.log('ckeck file: ' + file);
     if (!fs.existsSync(file)) {
         console.log('is not exist: ' + file);
         fs.writeFileSync(file, '');
         console.log('create file: ' + file);
     }
-  
+
     let lastPostDate = fs.readFileSync(file, 'utf8');
     console.log('last post date: ' + lastPostDate);
-   
-    try {
-        const result = await fetchVkPosts(sub_source, currentSource.dailyPosts * 2);//2 это кол-во итераций в день
-        if (result == null || result.items.length === 0) {
-            console.log('No posts found.');
-            return;
-        }
 
-        var posts = result.items;
+    let needToSendCount = currentSource.dailyPosts;
+    let needToFetch = needToSendCount * needToSendCount;//берем больше так пагинация всегда сверху вниз и нужно больше свежих постов захватить
 
-        if (lastPostDate == '') {
-            posts = posts.sort((a, b) => a.date - b.date).slice(0, currentSource.dailyPosts);
-        } else {
-            posts = posts.filter(x => x.date > lastPostDate).sort((a, b) => a.date - b.date).slice(0, currentSource.dailyPosts);
-        }
+    while (needToSendCount > 0) {
 
-        if (posts.length === 0) {
-            console.log('No actual posts found.');
-            return;
-        }
+        console.log(`Fetch ${needToSendCount} posts`);
 
-        lastPostDate = posts[posts.length - 1].date;
+        try {
+            const result = await fetchVkPosts(sub_source, needToFetch);
 
-        fs.writeFileSync(file, `${lastPostDate}`);
-
-        for (const post of posts) {
-            try {
-                await sendVkPostToTelegram(channelSettings.id, currentSource.type, channelSettings.messageSufix, post);
-            } catch (error) {
-                console.error('Error post: ', error.message);
+            if (result == null || result.items.length === 0) {
+                console.log('No posts found.');
+                return;
             }
-        }
 
-        console.log('VK Completed.');
-    } catch (error) {
-        console.log('Error with group: ' + sub_source + '. Error message: ' + error.message);
+            var posts = result.items;
+
+            if (lastPostDate == '') {
+                posts = posts.sort((a, b) => a.date - b.date).slice(0, needToSendCount);
+            } else {
+                posts = posts.filter(x => x.date > lastPostDate).sort((a, b) => a.date - b.date).slice(0, needToSendCount);
+            }
+
+            if (posts.length === 0) {
+                console.log('No actual posts found.');
+                return;
+            }
+
+            needToFetch -= needToSendCount;
+
+            lastPostDate = posts[posts.length - 1].date;
+
+            fs.writeFileSync(file, `${lastPostDate}`);
+
+            for (const post of posts) {
+                try {
+
+                    var isSend = await sendVkPostToTelegram(channelSettings.id, currentSource.type, channelSettings.messageSufix, post);
+                    needToSendCount -= isSend ? 1 : 0;
+                } catch (error) {
+                    console.error('Error post: ', error.message);
+                }
+            }
+
+            console.log(`${needToSendCount} posts left to send`);
+        } catch (error) {
+            console.log('Error with group: ' + sub_source + '. Error message: ' + error.message);
+        }
     }
+
+    console.log('VK Completed.');
 }
 
 async function fetchVkPosts(vkGroupId, count) {
@@ -120,8 +135,8 @@ async function sendVkPostToTelegram(chatId, availableTypes, messageSufix, post) 
                 console.log('Video: use as text');
                 title += `\n${prefix} vk.com/video${attachment.video.owner_id}_${attachment.video.id}`;
             }
-        }else{
-            console.log(`Skip post. Attachment type: ${attachment.type}. Required types: ${availableTypes}`); 
+        } else {
+            console.log(`Skip post. Attachment type: ${attachment.type}. Required types: ${availableTypes}`);
         }
     }
 

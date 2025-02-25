@@ -20,7 +20,7 @@ async function useReddit(channelSettings, currentSource) {
     const sub_source = currentSource.sub_source;
 
     let file = `${lastIndexDir}/${channelSettings.channel_name}_${SOURCE.REDDIT}_${sub_source}${lastIndexSuff}`;
-    
+
     if (!fs.existsSync(file)) {
         console.log('is not exist: ' + file);
         fs.writeFileSync(file, '');
@@ -30,36 +30,44 @@ async function useReddit(channelSettings, currentSource) {
     let lastIndex = fs.readFileSync(file, 'utf8');
     console.log('last index: ' + lastIndex);
 
-    try {
+    let needToSendCount = currentSource.dailyPosts;
 
-        if (!lastIndex || lastIndex == '' || lastIndex == null) {
-            lastIndex = currentSource.startId;
-        }
+    while (needToSendCount > 0) {
 
-        const result = await fetchSubredditPosts(sub_source, lastIndex, currentSource.dailyPosts);
+        console.log(`Fetch ${needToSendCount} posts`);
 
-        if (result == null || result.length === 0) {
-            console.log('---------> No posts found. <---------');
-            return;
-        }
+        try {
 
-        const index = result[result.length - 1].data.name;
-        fs.writeFileSync(file, index);
-
-        for (const post of result) {
-            try {
-                await processPost(channelSettings.id, currentSource.type, channelSettings.messageSufix, post.data);
-                await sleep();
-            } catch (e) {
-                console.log('processPost error: ' + e.message);
-                log(e, true);
+            if (!lastIndex || lastIndex == '' || lastIndex == null) {
+                lastIndex = currentSource.startId;
             }
-        }
 
-        console.log('Posts sent successfully.');
-    } catch (error) {
-        console.log('Error with subreddit: ' + sub_source + '. Error message: ' + error.message);
+            const result = await fetchSubredditPosts(sub_source, lastIndex, needToSendCount);
+
+            if (result == null || result.length === 0) {
+                console.log('---------> No posts found. <---------');
+                return;
+            }
+
+            const index = result[result.length - 1].data.name;
+            fs.writeFileSync(file, index);
+
+            for (const post of result) {
+                try {
+                    var isSended = await processPost(channelSettings.id, currentSource.type, channelSettings.messageSufix, post.data);
+                    needToSendCount -= isSended ? 1 : 0;
+                    await sleep();
+                } catch (e) {
+                    console.log('processPost error: ' + e.message);
+                    log(e, true);
+                }
+            }
+
+        } catch (error) {
+            console.log('Error with subreddit: ' + sub_source + '. Error message: ' + error.message);
+        }
     }
+    console.log('REDDIT Completed.');
 }
 
 async function fetchSubredditPosts(subreddit, lastPostId, count) {
@@ -93,14 +101,15 @@ async function processPost(chatId, availableTypes, messageSufix, post) {
 
     if ((postType === 'media' && post.url) || post.post_hint.includes('video')) {
         if (post.post_hint === 'image' && availableTypes.includes(MEDIA_TYPE.IMAGE)) {
-            await sendImageToTelegram(chatId, messageSufix, post);
+            return await sendImageToTelegram(chatId, messageSufix, post);
         } else if (post.post_hint.includes('video') && availableTypes.includes(MEDIA_TYPE.VIDEO)) {
-            await sendVideoToTelegram(chatId, messageSufix, post);
+            return await sendVideoToTelegram(chatId, messageSufix, post);
         }
     } else if (postType === 'gallery' && availableTypes.includes(MEDIA_TYPE.IMAGE)) {
-        await sendGalleryToTelegram(chatId, messageSufix, post);
+        return await sendGalleryToTelegram(chatId, messageSufix, post);
     } else {
         console.log(`Unsupported type ${postType} (${post.post_hint})`);
+        return false;
     }
 }
 
@@ -116,14 +125,18 @@ async function sendImageToTelegram(chatId, messageSufix, post) {
             }
         );
         console.log('Image sent successfully!');
+
+        return true;
     } catch (error) {
         console.error('Error sending image:', error.message);
     }
+
+    return false;
 }
 
 async function sendVideoToTelegram(chatId, messageSufix, post) {
     var videoUrl = post.secure_media?.reddit_video?.fallback_url?.split('?')[0];
-    if (!videoUrl) return;
+    if (!videoUrl) return false;
 
     const downloadDir = `${downloadDirectoryBase}/${post.subreddit}`;
 
@@ -155,13 +168,15 @@ async function sendVideoToTelegram(chatId, messageSufix, post) {
         }).catch(() => { })
     }
 
-    if (!audio) return;
+    if (!audio) return false;
 
     const audioFileName = videoFileName.replace('.mp4', '-audio.mp4');
 
     const videoFilePath = `${downloadDir}/${videoFileName}`;
     const audioFilePath = `${downloadDir}/${audioFileName}`;
     const mergedFilePath = `${downloadDir}/${videoFileName.replace('.mp4', '-merged.mp4')}`;
+
+    var isSened = false;
 
     try {
         await Promise.all([
@@ -195,6 +210,7 @@ async function sendVideoToTelegram(chatId, messageSufix, post) {
             formData,
         );
         console.log('Video sent successfully!');
+        isSened = true;
     } catch (error) {
         console.error('Error processing video:', error.message);
     } finally {
@@ -210,6 +226,8 @@ async function sendVideoToTelegram(chatId, messageSufix, post) {
             fs.unlinkSync(audioFilePath);
             console.log(`Remove audio file:${audioFilePath}`);
         }
+
+        return isSened;
     }
 }
 
@@ -230,9 +248,13 @@ async function sendGalleryToTelegram(chatId, messageSufix, post) {
             }
         );
         console.log('Gallery sent successfully!');
+
+        return true;
     } catch (error) {
         console.error('Error sending gallery:', error.message);
     }
+
+    return false;
 }
 
 function getPostType(post) {
