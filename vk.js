@@ -96,7 +96,7 @@ async function sendVkPostToTelegram(chatId, availableTypes, messageSufix, post) 
 
     if (!post.attachments) {
         console.log('Skip post, empty attachments');
-        return;
+        return false;
     }
 
     var attachments = post.attachments;
@@ -120,6 +120,8 @@ async function sendVkPostToTelegram(chatId, availableTypes, messageSufix, post) 
                 console.log('Video: use as text');
                 title += `\n${prefix} vk.com/video${attachment.video.owner_id}_${attachment.video.id}`;
             }
+        }else{
+            console.log(`Skip post. Attachment type: ${attachment.type}. Required types: ${availableTypes}`); 
         }
     }
 
@@ -127,7 +129,7 @@ async function sendVkPostToTelegram(chatId, availableTypes, messageSufix, post) 
     title = combineStringsForCaption(title, messageSufix);
 
     if (videoUrls.length == 0 && imageUrls.length == 0) {
-        return;
+        return false;
     }
     else if (videoUrls.length == 1 && imageUrls.length == 0) {
 
@@ -181,6 +183,8 @@ async function sendVkPostToTelegram(chatId, availableTypes, messageSufix, post) 
         );
         console.log('Gallery sent successfully!');
     }
+
+    return true;
 }
 
 async function getVkVideoUrl(ownerId, videoId, accessKey) {
