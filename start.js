@@ -40,6 +40,8 @@ async function startScript() {
             console.log(`---------------------------------------> SOURCE: ${source.name} | ${source.sub_source} |types: [${source.type}] | count: ${source.maxPosts}`);
             var sended = 0;//количество успешно отправленных постов в канал
 
+            source.maxPosts = needToSendCount < source.maxPosts ? needToSendCount : source.maxPosts;
+
             if (source.name == SOURCE.REDDIT) {
                 sended = await useReddit(channel, source);
             } else if (source.name == SOURCE.VK) {
@@ -53,6 +55,6 @@ async function startScript() {
             }
         }
 
-        console.log(`-----------------------------------> TOTAL [channel: ${channel.channel_name}] ${channel.dailyPosts-needToSendCount}/${channel.dailyPosts} <-----------------------------------\n\n`);
+        console.log(`-----------------------------------> TOTAL [channel: ${channel.channel_name}] ${channel.dailyPosts - needToSendCount}/${channel.dailyPosts} <-----------------------------------\n\n`);
     }
 }
