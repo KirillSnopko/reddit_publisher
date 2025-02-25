@@ -14,7 +14,7 @@ const postDelayMilliseconds = 250;
 
 async function useReddit(channelSettings, currentSource) {
     if (currentSource.name != SOURCE.REDDIT) {
-        return;
+        return 0;
     }
 
     const sub_source = currentSource.sub_source;
@@ -30,7 +30,7 @@ async function useReddit(channelSettings, currentSource) {
     let lastIndex = fs.readFileSync(file, 'utf8');
     console.log('last index: ' + lastIndex);
 
-    let needToSendCount = currentSource.dailyPosts;
+    let needToSendCount = currentSource.maxPosts;
 
     while (needToSendCount > 0) {
 
@@ -46,7 +46,7 @@ async function useReddit(channelSettings, currentSource) {
 
             if (result == null || result.length === 0) {
                 console.log('---------> No posts found. <---------');
-                return;
+                break;
             }
 
             const index = result[result.length - 1].data.name;
@@ -68,6 +68,8 @@ async function useReddit(channelSettings, currentSource) {
         }
     }
     console.log('REDDIT Completed.');
+
+    return currentSource.maxPosts - needToSendCount;
 }
 
 async function fetchSubredditPosts(subreddit, lastPostId, count) {

@@ -7,12 +7,12 @@ const { BOT_TOKEN, SOURCE, MEDIA_TYPE, lastIndexDir, lastIndexSuff, VK_TOKEN, co
 
 async function useVk(channelSettings, currentSource) {
     if (currentSource.name != SOURCE.VK) {
-        return;
+        return 0;
     }
 
     if (VK_TOKEN == null) {
         console.error('!!!!!!!!!!!!___Skip vk: token is null__!!!!!!!!!!!!!!!!!!');
-        return;
+        return 0;
     }
 
     const sub_source = currentSource.sub_source;
@@ -29,7 +29,7 @@ async function useVk(channelSettings, currentSource) {
     let lastPostDate = fs.readFileSync(file, 'utf8');
     console.log('last post date: ' + lastPostDate);
 
-    let needToSendCount = currentSource.dailyPosts;
+    let needToSendCount = currentSource.maxPosts;
     let needToFetch = needToSendCount * needToSendCount;//берем больше так пагинация всегда сверху вниз и нужно больше свежих постов захватить
 
     while (needToSendCount > 0) {
@@ -41,7 +41,7 @@ async function useVk(channelSettings, currentSource) {
 
             if (result == null || result.items.length === 0) {
                 console.log('No posts found.');
-                return;
+                break;
             }
 
             var posts = result.items;
@@ -54,7 +54,7 @@ async function useVk(channelSettings, currentSource) {
 
             if (posts.length === 0) {
                 console.log('No actual posts found.');
-                return;
+                break;
             }
 
             needToFetch -= needToSendCount;
@@ -80,6 +80,8 @@ async function useVk(channelSettings, currentSource) {
     }
 
     console.log('VK Completed.');
+
+    return currentSource.maxPosts - needToSendCount;
 }
 
 async function fetchVkPosts(vkGroupId, count) {

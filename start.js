@@ -19,7 +19,7 @@ async function startScript() {
     }
 
     for (const channel of configChannel) {
-        console.log(`-----------------------------------> СHANNEL: ${channel.channel_name} <-----------------------------------`);
+        console.log(`\n-----------------------------------> СHANNEL: ${channel.channel_name} | posts: ${channel.dailyPosts}<-----------------------------------`);
 
         var sources = channel.sources;
 
@@ -28,20 +28,31 @@ async function startScript() {
             continue;
         }
 
+        let needToSendCount = channel.dailyPosts; //ожидаемое количество постов в канал
+
+        if (needToSendCount <= 0) {
+            console.log(`Skip channel. dailyPosts=${needToSendCount}`);
+            continue;
+        }
+
         for (const source of sources) {
 
-            console.log(`---------------------------------------> SOURCE: ${source.name} | ${source.sub_source} |types: [${source.type}] | count: ${source.dailyPosts}`);
-
-            if (source.dailyPosts <= 0) {
-                console.log('Skip source');
-                continue;
-            }
+            console.log(`---------------------------------------> SOURCE: ${source.name} | ${source.sub_source} |types: [${source.type}] | count: ${source.maxPosts}`);
+            var sended = 0;//количество успешно отправленных постов в канал
 
             if (source.name == SOURCE.REDDIT) {
-                await useReddit(channel, source);
+                sended = await useReddit(channel, source);
             } else if (source.name == SOURCE.VK) {
-                await useVk(channel, source);
+                sended = await useVk(channel, source);
+            }
+
+            needToSendCount -= sended;
+
+            if (needToSendCount <= 0) {
+                break;
             }
         }
+
+        console.log(`-----------------------------------> TOTAL [channel: ${channel.channel_name}] ${channel.dailyPosts-needToSendCount}/${channel.dailyPosts} <-----------------------------------\n\n`);
     }
 }
