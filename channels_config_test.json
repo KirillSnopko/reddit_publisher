@@ -1,0 +1,29 @@
+[
+    {
+        "id": "-1002342607540",
+        "channel_name": "test2025",
+        "sources": [
+            {
+                "name": "reddit",
+                "sub_source": "TikTokCringe",
+                "type": [
+                    "image",
+                    "video"
+                ],
+                "startId": "t3_1ht40wt",
+                "maxPosts": 1
+            },
+            {
+                "name": "vk",
+                "sub_source": "-166517957",
+                "type": [               
+                    "video"
+                ],
+                "startId": "",
+                "maxPosts": 3
+            }
+        ],
+        "dailyPosts": 6,
+        "messageSufix": "\n\n👉 Cringe Videos - <a href=\"https://t.me/cringe_youtube_tiktok_videos\">Subscribe</a>"
+    }
+]

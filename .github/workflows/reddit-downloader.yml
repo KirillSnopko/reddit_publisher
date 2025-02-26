@@ -27,7 +27,7 @@ jobs:
       # Запускаем скрипт для скачивания постов
       - name: Send posts
         run: |
-          node start.js
+          node production.js
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }} 
           VK_TOKEN: ${{ secrets.VK_TOKEN }} 

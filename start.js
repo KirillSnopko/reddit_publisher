@@ -3,11 +3,9 @@ const fs = require('fs');
 const { SOURCE, lastIndexDir } = require('./system.js');
 const { useReddit } = require('./reddit.js');
 const { useVk } = require('./vk.js');
-const configChannel = require('./channels_config.json');
+//const configChannel = require('./channels_config.json');
 
-startScript();
-
-async function startScript() {
+async function startScript(configChannel) {
     console.log('-----------------------------------> START <-----------------------------------');
     if (configChannel == null || configChannel.length == 0) {
         console.log('channel config is empty');
@@ -58,3 +56,5 @@ async function startScript() {
         console.log(`-----------------------------------> TOTAL [channel: ${channel.channel_name}] ${channel.dailyPosts - needToSendCount}/${channel.dailyPosts} <-----------------------------------\n\n`);
     }
 }
+
+module.exports = {startScript };
