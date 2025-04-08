@@ -17,7 +17,7 @@ async function startScript(configChannel) {
     }
 
     for (const channel of configChannel) {
-        console.log(`\n-----------------------------------> СHANNEL: ${channel.channel_name} | posts: ${channel.dailyPosts}<-----------------------------------`);
+        console.log(`\n-----------------------------------> СHANNEL: ${channel.channel_name} | posts: ${channel.dailyPosts} <-----------------------------------`);
 
         var sources = channel.sources;
 
